@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Projects - Core entity
+model Project {
+  id           String   @id @default(uuid())
+  firebaseId   String?  @unique
+  name         String
+  ownerId      String
+  type         String?
+  status       String   @default("active")
+  budgetTotal  Decimal? @db.Decimal(15, 2)
+  grantType    String?
+  healthScore  Int      @default(100)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  transactions Transaction[]
+  teamMembers  TeamMember[]
+  milestones   Milestone[]
+  activities   Activity[]
+  dashboards   Dashboard[]
+}
+
+// Financial Transactions
+model Transaction {
+  id          String   @id @default(uuid())
+  projectId   String
+  type        String
+  amount      Decimal  @db.Decimal(15, 2)
+  vatRate     Decimal? @db.Decimal(5, 2)
+  category    String?
+  description String?
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  project     Project  @relation(fields: [projectId], references: [id])
+}
+
+// Team Members
+model TeamMember {
+  id          String   @id @default(uuid())
+  projectId   String
+  userEmail   String
+  userName    String?
+  role        String
+  permissions Json?
+  joinedAt    DateTime @default(now())
+  lastActive  DateTime @default(now())
+  
+  project     Project  @relation(fields: [projectId], references: [id])
+  
+  @@unique([projectId, userEmail])
+}
+
+// Milestones
+model Milestone {
+  id          String   @id @default(uuid())
+  projectId   String
+  title       String
+  description String?
+  dueDate     DateTime
+  status      String   @default("pending")
+  progress    Int      @default(0)
+  priority    String   @default("medium")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  project     Project  @relation(fields: [projectId], references: [id])
+}
+
+// Activity Feed
+model Activity {
+  id          String   @id @default(uuid())
+  projectId   String
+  userId      String
+  userEmail   String
+  action      String
+  entityType  String
+  entityId    String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  
+  project     Project  @relation(fields: [projectId], references: [id])
+}
+
+// Dashboard Preferences
+model Dashboard {
+  id          String   @id @default(uuid())
+  projectId   String
+  userId      String
+  layout      Json
+  widgets     Json
+  preferences Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  project     Project  @relation(fields: [projectId], references: [id])
+  
+  @@unique([projectId, userId])
+}
